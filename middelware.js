@@ -1,11 +1,18 @@
 const acl = require("./acl");
-
+const url = require('url')
 //check that user have permission for this route and method
-exports.isAuth = (req, res, next) => {
-  console.log(req.method);
+exports.havePermission = (req, res, next) => {
+  var url = req.originalUrl;
+
+  if(url.substr(-1) === '/') 
+    url = url.substr(0, url.length - 1);
+ 
+  if(req.params)
+    url = url.split('/').slice(0,-(Object.values(req.params).length)).join('/');
+
   if (req.body.role !== undefined) {
-    const groupPermission = getPermission(req)[0];
-    if (groupPermission.resource == req.originalUrl || groupPermission.resource=='*') {
+    const groupPermission = getPermission(url,req.body.role)[0];
+    if (groupPermission.resource == url || groupPermission.resource=='*') {
         if(groupPermission.methods.includes(req.method) || groupPermission.methods == '*' )
         {
               next()  
@@ -24,12 +31,13 @@ exports.isAuth = (req, res, next) => {
 };
 
 //get permission from acl file
-const getPermission = (reqest) => {
+const getPermission = (url,role) => {
+  console.log(url,role)
   let group = acl.permissions.filter((permission) => {
-    return permission.role == reqest.body.role;
+    return permission.role == role;
   });
   if(group.length != 0)
-  return group[0].permissions.filter(permission => (permission.resource == reqest.originalUrl || permission.resource=='*'));
+  return group[0].permissions.filter(permission => (permission.resource == url || permission.resource=='*'));
   else{
       return new Array({permission: []})
   }
